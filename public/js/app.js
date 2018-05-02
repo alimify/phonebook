@@ -46289,44 +46289,84 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 //
 //
 //
+//
+//
+//
+//
 
 var Add = __webpack_require__(46),
-    Show = __webpack_require__(57);
+    Show = __webpack_require__(57),
+    Edit = __webpack_require__(60);
 
 /* harmony default export */ __webpack_exports__["default"] = ({
-  components: { Add: Add, Show: Show },
+  components: { Add: Add, Show: Show, Edit: Edit },
   data: function data() {
     return {
-      addActive: '',
-      showModal: '',
+      addActive: "",
+      showModal: "",
+      editModal: "",
+      loading: false,
+      searchQuery: "",
       lists: {},
-      errors: {}
+      errors: {},
+      tmp: ""
     };
   },
+
+  watch: {
+    searchQuery: function searchQuery() {
+      var _this = this;
+
+      if (this.searchQuery.length > 0) {
+        this.tmp = this.lists.filter(function (item) {
+          return Object.keys(item).some(function (key) {
+            var string = String(item[key]);
+
+            return string.toLowerCase().indexOf(_this.searchQuery.toLowerCase()) > -1;
+          });
+        });
+      } else {
+        this.tmp = this.lists;
+      }
+    }
+  },
   mounted: function mounted() {
-    this.loadData();
+    var _this2 = this;
+
+    axios.post("/getData").then(function (response) {
+      return _this2.lists = _this2.tmp = response.data;
+    }).catch(function (error) {
+      return _this2.errors = error.response.data.errors;
+    });
   },
 
   methods: {
     openAdd: function openAdd() {
-      this.addActive = 'is-active';
+      this.addActive = "is-active";
     },
     close: function close() {
-      this.addActive = this.showModal = '';
-      this.loadData();
+      this.addActive = this.showModal = this.editModal = "";
     },
     openShow: function openShow(key) {
-      this.showModal = 'is-active';
-      this.$children[1].list = this.lists[key];
+      this.showModal = "is-active";
+      this.$children[1].list = this.tmp[key];
     },
-    loadData: function loadData() {
-      var _this = this;
+    openEdit: function openEdit(key) {
+      this.editModal = "is-active";
+      this.$children[2].list = this.tmp[key];
+    },
+    del: function del(key, id) {
+      var _this3 = this;
 
-      axios.post('/getData').then(function (response) {
-        return _this.lists = response.data;
-      }).catch(function (error) {
-        return _this.errors = error.response.data.errors;
-      });
+      if (confirm("Are your sure to delete ?")) {
+        this.loading = !this.loading;
+        axios.delete("/phonebook/" + id).then(function (response) {
+          _this3.loading = !_this3.loading;
+          _this3.lists.splice(key, 1);
+        }).catch(function (error) {
+          return _this3.errors = error.response.data.errors;
+        });
+      }
     }
   }
 });
@@ -46454,6 +46494,10 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
       var _this = this;
 
       axios.post("/phonebook", this.$data.list).then(function (response) {
+        _this.$parent.lists.push(response.data);
+        _this.$parent.lists.sort(function (a, b) {
+          return a.name > b.name ? 1 : -1;
+        });
         _this.close();
       }).catch(function (error) {
         return _this.errors = error.response.data.errors;
@@ -46641,10 +46685,46 @@ var render = function() {
               [_vm._v("\r\n     Add New\r\n    ")]
             )
           ]),
+          _vm.loading
+            ? _c("div", { staticClass: "is-pulled-right" }, [
+                _c("i", {
+                  staticClass: "fa fa-refresh",
+                  attrs: { "aria-hidden": "true" }
+                })
+              ])
+            : _vm._e(),
           _vm._v(" "),
-          _vm._m(0),
+          _c("p"),
           _vm._v(" "),
-          _vm._l(_vm.lists, function(item, key) {
+          _c("div", { staticClass: "panel-block" }, [
+            _c("p", { staticClass: "control has-icons-left" }, [
+              _c("input", {
+                directives: [
+                  {
+                    name: "model",
+                    rawName: "v-model",
+                    value: _vm.searchQuery,
+                    expression: "searchQuery"
+                  }
+                ],
+                staticClass: "input is-small",
+                attrs: { type: "text", placeholder: "search" },
+                domProps: { value: _vm.searchQuery },
+                on: {
+                  input: function($event) {
+                    if ($event.target.composing) {
+                      return
+                    }
+                    _vm.searchQuery = $event.target.value
+                  }
+                }
+              }),
+              _vm._v(" "),
+              _vm._m(0)
+            ])
+          ]),
+          _vm._v(" "),
+          _vm._l(_vm.tmp, function(item, key) {
             return _c("a", { staticClass: "panel-block" }, [
               _c("div", { staticClass: "is-9 column" }, [
                 _vm._v(
@@ -46656,9 +46736,37 @@ var render = function() {
                 )
               ]),
               _vm._v(" "),
-              _vm._m(1, true),
+              _c("span", { staticClass: "panel-icon column is-1" }, [
+                _c(
+                  "i",
+                  {
+                    staticClass: "has-text-danger fa fa-trash",
+                    attrs: { "aria-hidden": "true" },
+                    on: {
+                      click: function($event) {
+                        _vm.del(key, item.id)
+                      }
+                    }
+                  },
+                  [_vm._v("D")]
+                )
+              ]),
               _vm._v(" "),
-              _vm._m(2, true),
+              _c("span", { staticClass: "panel-icon column is-1" }, [
+                _c(
+                  "i",
+                  {
+                    staticClass: "has-text-info fa fa-edit",
+                    attrs: { "aria-hidden": "true" },
+                    on: {
+                      click: function($event) {
+                        _vm.openEdit(key)
+                      }
+                    }
+                  },
+                  [_vm._v("E")]
+                )
+              ]),
               _vm._v(" "),
               _c("span", { staticClass: "panel-icon column is-1" }, [
                 _c(
@@ -46689,6 +46797,11 @@ var render = function() {
       _c("Show", {
         attrs: { openmodal: _vm.showModal },
         on: { closeRequest: _vm.close }
+      }),
+      _vm._v(" "),
+      _c("Edit", {
+        attrs: { openmodal: _vm.editModal },
+        on: { closeRequest: _vm.close }
       })
     ],
     1
@@ -46699,50 +46812,11 @@ var staticRenderFns = [
     var _vm = this
     var _h = _vm.$createElement
     var _c = _vm._self._c || _h
-    return _c("div", { staticClass: "panel-block" }, [
-      _c("p", { staticClass: "control has-icons-left" }, [
-        _c("input", {
-          staticClass: "input is-small",
-          attrs: { type: "text", placeholder: "search" }
-        }),
-        _vm._v(" "),
-        _c("span", { staticClass: "icon is-small is-left" }, [
-          _c("i", {
-            staticClass: "fas fa-search",
-            attrs: { "aria-hidden": "true" }
-          })
-        ])
-      ])
-    ])
-  },
-  function() {
-    var _vm = this
-    var _h = _vm.$createElement
-    var _c = _vm._self._c || _h
-    return _c("span", { staticClass: "panel-icon column is-1" }, [
-      _c(
-        "i",
-        {
-          staticClass: "has-text-danger fa fa-trash",
-          attrs: { "aria-hidden": "true" }
-        },
-        [_vm._v("D")]
-      )
-    ])
-  },
-  function() {
-    var _vm = this
-    var _h = _vm.$createElement
-    var _c = _vm._self._c || _h
-    return _c("span", { staticClass: "panel-icon column is-1" }, [
-      _c(
-        "i",
-        {
-          staticClass: "has-text-info fa fa-edit",
-          attrs: { "aria-hidden": "true" }
-        },
-        [_vm._v("E")]
-      )
+    return _c("span", { staticClass: "icon is-small is-left" }, [
+      _c("i", {
+        staticClass: "fas fa-search",
+        attrs: { "aria-hidden": "true" }
+      })
     ])
   }
 ]
@@ -46924,7 +46998,9 @@ var render = function() {
     _vm._v(" "),
     _c("div", { staticClass: "modal-card" }, [
       _c("header", { staticClass: "modal-card-head" }, [
-        _c("p", { staticClass: "modal-card-title" }, [_vm._v("Show Modal")]),
+        _c("p", { staticClass: "modal-card-title" }, [
+          _vm._v(_vm._s(_vm.list.name) + "'s Details")
+        ]),
         _vm._v(" "),
         _c("button", {
           staticClass: "delete",
@@ -47043,6 +47119,283 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
     }
   }
 });
+
+/***/ }),
+/* 60 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var disposed = false
+var normalizeComponent = __webpack_require__(2)
+/* script */
+var __vue_script__ = __webpack_require__(61)
+/* template */
+var __vue_template__ = __webpack_require__(62)
+/* template functional */
+var __vue_template_functional__ = false
+/* styles */
+var __vue_styles__ = null
+/* scopeId */
+var __vue_scopeId__ = null
+/* moduleIdentifier (server only) */
+var __vue_module_identifier__ = null
+var Component = normalizeComponent(
+  __vue_script__,
+  __vue_template__,
+  __vue_template_functional__,
+  __vue_styles__,
+  __vue_scopeId__,
+  __vue_module_identifier__
+)
+Component.options.__file = "resources\\assets\\js\\components\\Edit.vue"
+
+/* hot reload */
+if (false) {(function () {
+  var hotAPI = require("vue-hot-reload-api")
+  hotAPI.install(require("vue"), false)
+  if (!hotAPI.compatible) return
+  module.hot.accept()
+  if (!module.hot.data) {
+    hotAPI.createRecord("data-v-39804701", Component.options)
+  } else {
+    hotAPI.reload("data-v-39804701", Component.options)
+  }
+  module.hot.dispose(function (data) {
+    disposed = true
+  })
+})()}
+
+module.exports = Component.exports
+
+
+/***/ }),
+/* 61 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+
+/* harmony default export */ __webpack_exports__["default"] = ({
+  props: ["openmodal"],
+  data: function data() {
+    return {
+      list: '',
+      errors: {}
+    };
+  },
+
+  methods: {
+    close: function close() {
+      this.$emit("closeRequest");
+    },
+    edit: function edit() {
+      var _this = this;
+
+      axios.patch("/phonebook/" + this.list.id, this.$data.list).then(function (response) {
+        _this.close();
+      }).catch(function (error) {
+        return _this.errors = error.response.data.errors;
+      });
+    }
+  }
+});
+
+/***/ }),
+/* 62 */
+/***/ (function(module, exports, __webpack_require__) {
+
+var render = function() {
+  var _vm = this
+  var _h = _vm.$createElement
+  var _c = _vm._self._c || _h
+  return _c("div", { staticClass: "modal", class: _vm.openmodal }, [
+    _c("div", { staticClass: "modal-background" }),
+    _vm._v(" "),
+    _c("div", { staticClass: "modal-card" }, [
+      _c("header", { staticClass: "modal-card-head" }, [
+        _c("p", { staticClass: "modal-card-title" }, [
+          _vm._v("Edit " + _vm._s(_vm.list.name) + "'s Details")
+        ]),
+        _vm._v(" "),
+        _c("button", {
+          staticClass: "delete",
+          attrs: { "aria-label": "close" },
+          on: { click: _vm.close }
+        })
+      ]),
+      _vm._v(" "),
+      _c("section", { staticClass: "modal-card-body" }, [
+        _c("div", { staticClass: "field" }, [
+          _c("label", { staticClass: "label" }, [_vm._v("Name")]),
+          _vm._v(" "),
+          _c("div", { staticClass: "control" }, [
+            _c("input", {
+              directives: [
+                {
+                  name: "model",
+                  rawName: "v-model",
+                  value: _vm.list.name,
+                  expression: "list.name"
+                }
+              ],
+              staticClass: "input",
+              class: { "is-danger": _vm.errors.name },
+              attrs: { type: "text", placeholder: "Jewel" },
+              domProps: { value: _vm.list.name },
+              on: {
+                input: function($event) {
+                  if ($event.target.composing) {
+                    return
+                  }
+                  _vm.$set(_vm.list, "name", $event.target.value)
+                }
+              }
+            })
+          ]),
+          _vm._v(" "),
+          _vm.errors.name
+            ? _c("small", { staticClass: "has-text-danger" }, [
+                _vm._v(_vm._s(_vm.errors.name[0]))
+              ])
+            : _vm._e()
+        ]),
+        _vm._v(" "),
+        _c("div", { staticClass: "field" }, [
+          _c("label", { staticClass: "label" }, [_vm._v("Phone")]),
+          _vm._v(" "),
+          _c("div", { staticClass: "control" }, [
+            _c("input", {
+              directives: [
+                {
+                  name: "model",
+                  rawName: "v-model",
+                  value: _vm.list.phone,
+                  expression: "list.phone"
+                }
+              ],
+              staticClass: "input",
+              class: { "is-danger": _vm.errors.phone },
+              attrs: { type: "number", placeholder: "012127127828" },
+              domProps: { value: _vm.list.phone },
+              on: {
+                input: function($event) {
+                  if ($event.target.composing) {
+                    return
+                  }
+                  _vm.$set(_vm.list, "phone", $event.target.value)
+                }
+              }
+            })
+          ]),
+          _vm._v(" "),
+          _vm.errors.phone
+            ? _c("small", { staticClass: "has-text-danger" }, [
+                _vm._v(_vm._s(_vm.errors.phone[0]))
+              ])
+            : _vm._e()
+        ]),
+        _vm._v(" "),
+        _c("div", { staticClass: "field" }, [
+          _c("label", { staticClass: "label" }, [_vm._v("Email")]),
+          _vm._v(" "),
+          _c("div", { staticClass: "control" }, [
+            _c("input", {
+              directives: [
+                {
+                  name: "model",
+                  rawName: "v-model",
+                  value: _vm.list.email,
+                  expression: "list.email"
+                }
+              ],
+              staticClass: "input",
+              class: { "is-danger": _vm.errors.email },
+              attrs: { type: "text", placeholder: "example@mail.com" },
+              domProps: { value: _vm.list.email },
+              on: {
+                input: function($event) {
+                  if ($event.target.composing) {
+                    return
+                  }
+                  _vm.$set(_vm.list, "email", $event.target.value)
+                }
+              }
+            })
+          ]),
+          _vm._v(" "),
+          _vm.errors.email
+            ? _c("small", { staticClass: "has-text-danger" }, [
+                _vm._v(_vm._s(_vm.errors.email[0]))
+              ])
+            : _vm._e()
+        ])
+      ]),
+      _vm._v(" "),
+      _c("footer", { staticClass: "modal-card-foot" }, [
+        _c(
+          "button",
+          { staticClass: "button is-success", on: { click: _vm.edit } },
+          [_vm._v("Edit")]
+        ),
+        _vm._v(" "),
+        _c("button", { staticClass: "button", on: { click: _vm.close } }, [
+          _vm._v("Cancel")
+        ])
+      ])
+    ])
+  ])
+}
+var staticRenderFns = []
+render._withStripped = true
+module.exports = { render: render, staticRenderFns: staticRenderFns }
+if (false) {
+  module.hot.accept()
+  if (module.hot.data) {
+    require("vue-hot-reload-api")      .rerender("data-v-39804701", module.exports)
+  }
+}
 
 /***/ })
 /******/ ]);

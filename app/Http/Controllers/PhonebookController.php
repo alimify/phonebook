@@ -46,6 +46,7 @@ return view('phonebook');
      $pb->phone = $request->phone;
      $pb->email = $request->email;
      $pb->save();
+     return $pb;
     }
 
     /**
@@ -77,9 +78,13 @@ return view('phonebook');
      * @param  \App\Phonebook  $phonebook
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, Phonebook $phonebook)
+    public function update(PhonebookRequest $request)
     {
-        //
+     $pb = Phonebook::find($request->id);
+     $pb->name = $request->name;
+     $pb->phone = $request->phone;
+     $pb->email = $request->email;
+     $pb->save();
     }
 
     /**
@@ -90,6 +95,6 @@ return view('phonebook');
      */
     public function destroy(Phonebook $phonebook)
     {
-        //
+     return Phonebook::where('id',$phonebook->id)->delete();
     }
 }
